@@ -1,0 +1,97 @@
+---
+title: "DATA 607 Assignment 1"
+author: "Zach Dravis"
+date: "2/4/2018"
+output: html_document
+---
+Get Data & Names
+```{r}
+MushroomData <- as.data.frame(read.csv(url("https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data"), header = F))
+
+names(MushroomData) <- c(
+"classes",
+"cap-shape",
+"cap-surface",
+"cap-color",
+"bruises?",
+"odor",
+"gill-attachment",
+"gill-spacing",
+"gill-size",
+"gill-color",
+"stalk-shape",
+"stalk-root",
+"stalk-surface-above-ring",
+"stalk-surface-below-ring",
+"stalk-color-above-ring",
+"stalk-color-below-ring",
+"veil-type",
+"veil-color",
+"ring-number",
+"ring-type",
+"spore-print-color",
+"population",
+"habitat")
+```
+
+Subset Data
+```{r}
+CondensedMushroomData <- MushroomData[, c("classes", "odor", "stalk-root", "population", "habitat")]
+```
+
+Recode Data
+```{r}
+CondensedMushroomData$classes <- as.character(CondensedMushroomData$classes)
+CondensedMushroomData$population <- as.character(CondensedMushroomData$population)
+CondensedMushroomData$odor <- as.character(CondensedMushroomData$odor)
+CondensedMushroomData$habitat <- as.character(CondensedMushroomData$habitat)
+CondensedMushroomData$`stalk-root` <- as.character(CondensedMushroomData$`stalk-root`)
+
+
+CondensedMushroomData$classes[CondensedMushroomData$classes == "e"] <- "edible"
+CondensedMushroomData$classes[CondensedMushroomData$classes == "p"] <- "poisonous"
+
+CondensedMushroomData$population[CondensedMushroomData$population == "a"] <- "abundant"
+CondensedMushroomData$population[CondensedMushroomData$population == "c"] <- "clustered"
+CondensedMushroomData$population[CondensedMushroomData$population == "n"] <- "numerous"
+CondensedMushroomData$population[CondensedMushroomData$population == "s"] <- "scattered"
+CondensedMushroomData$population[CondensedMushroomData$population == "v"] <- "several"
+CondensedMushroomData$population[CondensedMushroomData$population == "y"] <- "solitary"
+
+CondensedMushroomData$odor[CondensedMushroomData$odor == "a"] <- "almond"
+CondensedMushroomData$odor[CondensedMushroomData$odor == "l"] <- "anise"
+CondensedMushroomData$odor[CondensedMushroomData$odor == "c"] <- "creosote"
+CondensedMushroomData$odor[CondensedMushroomData$odor == "y"] <- "fishy"
+CondensedMushroomData$odor[CondensedMushroomData$odor == "f"] <- "foul"
+CondensedMushroomData$odor[CondensedMushroomData$odor == "m"] <- "musty"
+CondensedMushroomData$odor[CondensedMushroomData$odor == "n"] <- "none"
+CondensedMushroomData$odor[CondensedMushroomData$odor == "p"] <- "pungent"
+CondensedMushroomData$odor[CondensedMushroomData$odor == "s"] <- "spicy"
+
+CondensedMushroomData$habitat[CondensedMushroomData$habitat == "g"] <- "grasses"
+CondensedMushroomData$habitat[CondensedMushroomData$habitat == "l"] <- "leaves"
+CondensedMushroomData$habitat[CondensedMushroomData$habitat == "m"] <- "meadows"
+CondensedMushroomData$habitat[CondensedMushroomData$habitat == "p"] <- "paths"
+CondensedMushroomData$habitat[CondensedMushroomData$habitat == "u"] <- "urban"
+CondensedMushroomData$habitat[CondensedMushroomData$habitat == "w"] <- "waste"
+CondensedMushroomData$habitat[CondensedMushroomData$habitat == "d"] <- "woods"
+
+CondensedMushroomData$`stalk-root`[CondensedMushroomData$`stalk-root` == "b"] <- "bulbous"
+CondensedMushroomData$`stalk-root`[CondensedMushroomData$`stalk-root` == "c"] <- "club"
+CondensedMushroomData$`stalk-root`[CondensedMushroomData$`stalk-root` == "u"] <- "cup"
+CondensedMushroomData$`stalk-root`[CondensedMushroomData$`stalk-root` == "e"] <- "equal"
+CondensedMushroomData$`stalk-root`[CondensedMushroomData$`stalk-root` == "z"] <- "rhizomorphs"
+CondensedMushroomData$`stalk-root`[CondensedMushroomData$`stalk-root` == "r"] <- "rootes"
+CondensedMushroomData$`stalk-root`[CondensedMushroomData$`stalk-root` == "?"] <- "missing"
+```
+
+
+(classes: edible=e, poisonous=p)
+   21. population:               abundant=a,clustered=c,numerous=n,
+                                  scattered=s,several=v,solitary=y
+    22. habitat:                  grasses=g,leaves=l,meadows=m,paths=p,
+                                  urban=u,waste=w,woods=d
+       5. odor:                     almond=a,anise=l,creosote=c,fishy=y,foul=f,
+                                  musty=m,none=n,pungent=p,spicy=s
+         11. stalk-root:               bulbous=b,club=c,cup=u,equal=e,
+                                  rhizomorphs=z,rooted=r,missing=?
