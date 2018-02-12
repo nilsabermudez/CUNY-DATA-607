@@ -1,0 +1,25 @@
+---
+title: "DATA 607 Assignment 2"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(RMySQL)
+```
+
+```{r include=FALSE}
+mypw <- "mysqlpassword"
+```
+
+```{r}
+MoviesDB <- dbConnect(MySQL(),
+                      user='root',
+                      password=mypw,
+                      dbname='Movie Ratings',
+                      host='localhost')
+dbListTables(MoviesDB)
+MoviesR <- dbReadTable(MoviesDB, 'Movies')
+dbDisconnect(MoviesDB)
+```
