@@ -1,0 +1,137 @@
+---
+title: "DATA 607 Project 1"
+author: "Zach Dravis"
+date: "2/24/2018"
+output: html_document
+---
+
+##Import Data and Load Libraries
+To download data please visit:
+```{r}
+library(stringr)
+
+data <- read.csv("/Users/zachdravis/Documents/CUNY/DATA 607/tournamentinfo.txt")
+```
+
+##Clean Data
+Here I eliminate the dash delineators and also make it so that each record / player only has one row of data--in line with concepts of tidy data.
+```{r}
+data <- data.frame(data[-c(seq(3, 196, by =3)), ], stringsAsFactors = F)
+
+NewData <- data.frame(Col1 = paste(data[seq(3, 129, by = 2),], data[seq(4,130, by = 2),], sep=""), stringsAsFactors = F)
+```
+
+##Given Example
+Creating a data frame with the given example for reference.
+```{r}
+Example <- data.frame(PlayerName = "Gary Hua", PlayerState = "ON", TotalPoints = 6.0, PreRating = 1794, AvgPreChessRatingOfOpponents = 1605)
+```
+
+##Task
+Create a CSV with: Player’s Name, Player’s State, Total Number of Points, Player’s Pre-Rating, and Average Pre Chess Rating of Opponents
+
+##Add Player Number and split the strings
+```{r}
+NewData$PlayerNumber <- 1:64
+
+#Create a function to split the information
+SplitPlayerInfo <- function(x){
+  PlayerSplit <- strsplit(NewData[x,1], "\\|")
+  return(PlayerSplit)
+}
+
+#Make a master list of all the other lists
+MasterList <- NULL
+for(i in 1:64){
+  name <- paste("Player", i, sep = "")
+  x <- assign(name, SplitPlayerInfo(i))
+  MasterList <- append(MasterList, x)
+}
+
+```
+
+##Player Name
+Here I extract player name from the string and then append it to a vector that I add to the data frame.
+```{r}
+AllPlayerNames <- NULL
+for(i in 1:64){
+  PlayerName <- MasterList[[i]][2]
+  x <- str_c(unlist(str_extract_all(PlayerName, "[:alpha:]+\\b")), collapse = " ")
+  AllPlayerNames <- append(AllPlayerNames, x)
+}
+
+NewData$PlayerName <- AllPlayerNames
+```
+
+
+##Player's State
+Same technique as above.
+```{r}
+AllPlayerStates <- NULL
+for(i in 1:64){
+  PlayerState <- MasterList[[i]][11]
+  x <- str_extract(PlayerState, "[:alpha:]{2}")
+  AllPlayerStates <- append(AllPlayerStates, x)
+}
+
+NewData$PlayerStates <- AllPlayerStates
+```
+
+
+##Player's Total Points
+Same technique used for name and state.
+```{r}
+AllPlayerTotalPoints <- NULL
+for(i in 1:64){
+  PlayerPoints <- MasterList[[i]][3]
+  x <- str_extract(PlayerPoints, "\\d\\.\\d*")
+  AllPlayerTotalPoints <- append(AllPlayerTotalPoints, x)
+}
+
+NewData$TotalPoints <- AllPlayerTotalPoints
+```
+
+##PreRating
+Same technique for the above variables including removigng the "P.."
+```{r}
+AllPlayerPreRating <- NULL
+for(i in 1:64){
+  PlayerPreRating <- MasterList[[i]][12]
+  x <- unlist(str_extract_all(PlayerPreRating, "[[:digit:]P]+\\b"))
+  x <- x[2]
+  x <- str_replace(x, "P.*", "")
+  AllPlayerPreRating <- append(AllPlayerPreRating, x)
+}
+
+NewData$PreRating <- AllPlayerPreRating
+```
+
+
+##Pre Tournament Rating of Opponents
+Here I use two nested for loops to calculate the average pre tournament rating for each individual's opponents.
+```{r}
+OpponentRatings <- NULL
+AllPlayersAvgOpponentRatings <- NULL
+for(i in 1:64){
+  Opponents <- MasterList[[i]][4:10]
+  Opponents <- str_extract(Opponents, "\\d*$")
+  Opponents <- Opponents[Opponents != ""]
+  Opponents <- as.numeric(Opponents)
+  for(j in Opponents){
+    Matches <- NewData$PlayerNumber == j
+    OpponentRatings <- append(OpponentRatings, as.numeric(NewData$PreRating[Matches]))
+  }
+    AllPlayersAvgOpponentRatings <- append(AllPlayersAvgOpponentRatings, (sum(OpponentRatings) / length(OpponentRatings)))
+    OpponentRatings <- NULL
+}
+
+NewData$AvgOpponentRating <- AllPlayersAvgOpponentRatings
+```
+
+
+#Drop the now unneded column and rename dataframe
+```{r}
+ChessPlayerData <- NewData
+ChessPlayerData <- ChessPlayerData[, -c(1)]
+```
+
