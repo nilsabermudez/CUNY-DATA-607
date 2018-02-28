@@ -5,7 +5,7 @@ date: "2/24/2018"
 output: html_document
 ---
 
-##Import Data and Load Libraries
+## Import Data and Load Libraries
 To download data please visit:
 ```{r}
 library(stringr)
