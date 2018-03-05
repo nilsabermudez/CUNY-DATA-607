@@ -1,0 +1,90 @@
+---
+title: "DATA 607 Assignment 5"
+author: "Zach Dravis"
+date: "3/4/2018"
+output: html_document
+---
+
+# Read in Data
+```{r}
+setwd("/Users/zachdravis/Desktop")
+FlightData <- read.csv("WeekFiveAssignmentdata.csv", stringsAsFactors = F, header = T)
+```
+
+# Transform and Tidy data
+Here I am interpreting each observation as a flight from a given airline to a given destination.  The variables are thus not the city names, but on time and delayed, as they are summaries of each observation.  So I want to transform the data to represent this.
+
+To do so, I will use the tidyr package.  Fur further data transformation and cleaning, I will use the dplyr package.
+```{r}
+library(tidyr)
+library(dplyr)
+```
+
+Here I will make several sylistic changes and also "tidy the data."  I will walk through each step below.
+```{r}
+#First dropping row of NAs
+FlightData <- FlightData[-c(3),]
+
+#Here the data is in a long form. As described above, each row is not an observation.  I change that with gather().
+FlightData <- gather(FlightData, "City", "N", 3:7)
+
+#Here I just rename several variables and values
+FlightData <- rename(FlightData, Airline = X)
+FlightData <- rename(FlightData, Status = X.1)
+FlightData$Airline[FlightData$Airline == "Am west"] <- "AM West"
+FlightData$Status[FlightData$Status == "on time"] <- "OnTime"
+FlightData$Status[FlightData$Status == "delayed"] <- "Delayed"
+
+#Here I make it so that every cell in the airline column is labeled with the appropriate airline
+for(i in 1:length(FlightData$Airline)){
+  if(FlightData$Airline[i] == ""){
+    FlightData$Airline[i] <- FlightData$Airline[i-1]
+  }
+}
+
+#I now spread the data such that OnTime and Delayed are keys (new variables) with values of N
+FlightData <- spread(FlightData, Status, N)
+```
+
+# Analyze Data
+Great! So now our data is in a tidy format.  Each observation is a row (an airline's number of delays and on time flights for each city) and each variable is a column (airline, city, delayed n and on time n).  Let's group and the data and see if any interesting analysis questions come up.
+```{r}
+FlightSummary <- FlightData %>%
+  group_by(Airline) %>%
+  summarise(
+    TotalDelayed = sum(Delayed),
+    TotalOnTime = sum(OnTime), 
+    MeanDelayed = mean(Delayed),
+    MeanOnTime = mean(OnTime),
+    SDDelayed = sd(Delayed),
+    SDOnTime = sd(OnTime))
+```
+Looking at our newly minted FlightSummary table, I'm curious about the percent of flights delayed for each airline.  Let's calculate that.
+```{r}
+FlightSummary %>%
+  mutate(TotalFlights = TotalDelayed + TotalOnTime,
+         PercentDelayed = TotalDelayed/TotalFlights)
+```
+So it looks like across cities a flight has a 0.1327152 probability of being delayed if it is from Alaska Airline and a 0.1089273 of being delayed if it is from AM West airline.  But is this meaningful? Could it be due to chance?
+
+# Simulate data
+To test the question of if the different probabilities are due to chance or are significant, I will run a number of simulations for AM West based on Alaska's probability of having a delayed flight and then compare the results to the actual observed data for AM West.  One note, this is making some assumptions that may not hold true, but for the sake of this exercise, I will only point these out: this assumes that delays of flights are independent of one another, meaning that just because one flight got delayed doesn't mean another will.
+```{r}
+#Run 100 simulations using the actual size of the total flights for AM West
+outcomes <- c("OnTime", "Delay")
+Sims <- NULL
+for(i in 1:100){
+  StatusSim <- sample(outcomes, size = sum(FlightSummary$TotalDelayed[2],
+                                           FlightSummary$TotalOnTime[2]),
+                      replace = TRUE, prob = c(1-0.1327152, 0.1327152))
+  StatusSim <- table(StatusSim)
+  Sims <- append(Sims, StatusSim[1]/StatusSim[2])
+}
+
+SimsMean <- mean(Sims)
+SimsSD <- sd(Sims)
+```
+With a mean of 0.1536604 and a standard deviation of 0.005586788, it is very unlikely that the difference between the percentage of delayed flights for Alaska Airline and AM West airline is due to chance.  The actual observed probability of a delayed flight on AM West is 0.1089273 and based on the simulated data, three standard deviations below the mean is a probability of 0.1369001.  Therefore, if you have a choice in the near future, I would choose AM West due to the lower probability of being delayed than if traveling with Alaska.
+
+
+
