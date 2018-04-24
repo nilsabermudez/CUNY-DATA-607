@@ -4,33 +4,51 @@ author: "Zach Dravis"
 date: "2/24/2018"
 output: html_document
 ---
+# DATA 607 Project 1
+For this project, I was given a text file with chess tournament results where the information has some structure (See https://github.com/zachdravis/CUNY-DATA-607/blob/master/Project%201/DATA%20607%20Project%201%20Data.txt).
+
+The task was to create an R Markdown file that generates a .CSV file with the following information for all of the players:
+- Player’s Name
+- Player’s State
+- Total Number of Points
+- Player’s Pre-Rating
+- Average Pre Chess Rating of Opponents
+
+For the first player, the information would be:
+Gary Hua, ON, 6.0, 1794, 1605
+
+1605 was calculated by using the pre-tournament opponents’ ratings of 1436, 1563, 1600, 1610, 1649, 1663, 1716, and
+dividing by the total number of games played.
+
+What follows is my documented methodology so that others may learn from this example of manipulating data in text files.
 
 ## Import Data and Load Libraries
-To download data please visit:
+To download data please visit: https://github.com/zachdravis/CUNY-DATA-607/blob/master/Project%201/DATA%20607%20Project%201%20Data.txt
 ```{r}
 library(stringr)
 
-data <- read.csv("/Users/zachdravis/Documents/CUNY/DATA 607/tournamentinfo.txt")
+data <- read.csv("/Users/zachdravis/Documents/GitHub/CUNY-DATA-607/Project 1/DATA 607 Project 1 Data.txt")
 ```
 
-##Clean Data
+## Clean Data
 Here I eliminate the dash delineators and also make it so that each record / player only has one row of data--in line with concepts of tidy data.
+
+I'll use the sequence function to do so, since these data are uniformly structured
 ```{r}
 data <- data.frame(data[-c(seq(3, 196, by =3)), ], stringsAsFactors = F)
 
 NewData <- data.frame(Col1 = paste(data[seq(3, 129, by = 2),], data[seq(4,130, by = 2),], sep=""), stringsAsFactors = F)
 ```
 
-##Given Example
-Creating a data frame with the given example for reference.
+So now each individual chess player has their own row.
+
+## Given Example
+Here I just create a data frame with the given example for reference.
 ```{r}
 Example <- data.frame(PlayerName = "Gary Hua", PlayerState = "ON", TotalPoints = 6.0, PreRating = 1794, AvgPreChessRatingOfOpponents = 1605)
 ```
 
-##Task
-Create a CSV with: Player’s Name, Player’s State, Total Number of Points, Player’s Pre-Rating, and Average Pre Chess Rating of Opponents
-
-##Add Player Number and split the strings
+## Add Player Number and split the strings
 ```{r}
 NewData$PlayerNumber <- 1:64
 
@@ -63,7 +81,6 @@ for(i in 1:64){
 NewData$PlayerName <- AllPlayerNames
 ```
 
-
 ##Player's State
 Same technique as above.
 ```{r}
@@ -76,7 +93,6 @@ for(i in 1:64){
 
 NewData$PlayerStates <- AllPlayerStates
 ```
-
 
 ##Player's Total Points
 Same technique used for name and state.
@@ -106,7 +122,6 @@ for(i in 1:64){
 NewData$PreRating <- AllPlayerPreRating
 ```
 
-
 ##Pre Tournament Rating of Opponents
 Here I use two nested for loops to calculate the average pre tournament rating for each individual's opponents.
 ```{r}
@@ -128,10 +143,10 @@ for(i in 1:64){
 NewData$AvgOpponentRating <- AllPlayersAvgOpponentRatings
 ```
 
-
 #Drop the now unneded column and rename dataframe
 ```{r}
 ChessPlayerData <- NewData
 ChessPlayerData <- ChessPlayerData[, -c(1)]
 ```
 
+For more information on manipulating strings, see the soon to be posted stringr guide here: https://github.com/zachdravis/R_Guides/tree/master
