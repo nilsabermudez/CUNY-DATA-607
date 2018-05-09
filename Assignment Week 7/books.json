@@ -1,0 +1,18 @@
+
+{"Books_Table" :[ 
+	{"Book Name": "Automated Data Collection with R",
+	 "Book Publication Year": "2015",
+	 "Book Publisher": "Wiley",
+	 "Book author(s)": ["Simon Munzert, Christian Rubba, Peter Meißner, Dominic Nyhuis"]
+	},
+	{"Book Name": "OpenIntro Statistics",
+	 "Book Publication Year": "2015",
+	 "Book Publisher": "OpenIntro",
+	 "Book author(s)": ["David M Diez, Christopher D Barr, Mina Cetinkaya-Rundel"]
+	},
+	{"Book Name": "R for Data Science",
+	 "Book Publication Year": "2017",
+	 "Book Publisher": "O'Reilly",
+	 "Book author(s)": ["Hadley Wickham, Garrett Grolemund"]
+	}]
+}
