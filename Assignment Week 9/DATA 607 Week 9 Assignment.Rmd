@@ -1,0 +1,33 @@
+---
+title: "DATA 607 Week 9 Assignment"
+author: "Zach Dravis"
+date: "5/9/2018"
+output: html_document
+---
+
+# Task
+Your task is to choose one of the New York Times APIs, construct an interface in R to read in the JSON data, and transform it to an R dataframe.
+
+# Libraries
+```{r}
+library(jsonlite)
+```
+
+# Pulling in the data
+First I want to save the URL as an object
+```{r}
+NYTurl <- "https://api.nytimes.com/svc/topstories/v2/home.json"
+```
+
+Now create the API key as an object, hidden from view within the HTML document.
+```{r include=FALSE}
+APIKey <- "ffb014e1b14b4657a42970c9f026c9ba"
+```
+
+Now pull in via JSON
+```{r}
+NYTData <- fromJSON(paste0(NYTurl, "?api-key=", APIKey))
+NYTDataFrame <- NYTData[[6]]
+```
+
+Additional things to explore include adding to the API call to filter by date.  This might not be possible with top stories and is worth being tried with the articles API.
