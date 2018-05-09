@@ -1,21 +1,21 @@
 <?xml version = "1.0" encoding="UTF-8">
 <Books_Table>
-  <Book1>
+  <Book>
     <Book_Name>Automated Data Collection with R</title>
     <Book_Publication_Year>2015</author>
     <Book_Publisher>Wiley</publisher>
     <Book_Authors>Simon Munzert, Christian Rubba, Peter Meißner, Dominic Nyhuis</publication_date>
   </Book>
-  <Book2>
+  <Book>
     <Book_Name>OpenIntro Statistics</title>
     <Book_Publication_Year>2015</author>
     <Book_Publisher>OpenIntro</publisher>
     <Book_Authors>David M Diez, Christopher D Barr, Mina Cetinkaya-Rundel</publication_date>
-  </Book2>
-  <Book3>
+  </Book>
+  <Book>
     <Book_Name>R for Data Science</title>
     <Book_Publication_Year>2017</author>
     <Book_Publisher>OReilly</publisher>
     <Book_Authors>Hadley Wickham, Garrett Grolemund</publication_date>
-  </Book3>
+  </Book>
 </Books_Table>
