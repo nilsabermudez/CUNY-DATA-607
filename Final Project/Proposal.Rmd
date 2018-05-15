@@ -6,10 +6,10 @@ output: html_document
 ---
 
 # Motivation and Research Question
-I plan to investigate medicare costs and how they vary throughout the country.  This is in part inspired by data.gov's highlight that there is "significant variation across the country and within communities in what providers charge for common services." Furthermore, 
+I plan to investigate medicare costs and how they vary throughout the country.  This is in part inspired by data.gov's highlight that there is "significant variation across the country and within communities in what providers charge for common services." 
 
 # Data sources
-Given the crisis of increasing healthcare costs, there is a wealth of data available on the subject. One data source will be data.gov's data set that looks at the costs providers bill for various services: https://data.cms.gov/Medicare-Inpatient/Inpatient-Prospective-Payment-System-IPPS-Provider/97k6-zzx3.  These data inspire me to ask the question if providers charge different costs for the same service and in what areas do these differ?  I plan to identify the mean charges for each procedure in each state and then identify which states' procedure costs are statistically different from the mean.  This data set will be accessed via API.
+Given the crisis of increasing healthcare costs, there is a wealth of data available on the subject. One data source will be data.gov's data set that looks at the costs providers bill for various services: https://data.cms.gov/Medicare-Inpatient/Inpatient-Prospective-Payment-System-IPPS-Provider/97k6-zzx3.  These data inspire me to ask the question if providers charge different costs for the same service and in what areas do these differ?  I plan to identify the mean charges for each procedure in each state and then identify which states' procedure costs are statistically different from the mean.  This data set will be accessed via API.  
 
 I hope to then relate this to variables related to quality of care and patient experience of care.  When providers are charging more, are patients actually receiving more?  These data will be provided by data.medicare.gov: https://data.medicare.gov/Hospital-Compare/Hospital-Value-Based-Purchasing-HVBP-Total-Perform/ypbt-wvdk.  These data are available in CSV format.
 

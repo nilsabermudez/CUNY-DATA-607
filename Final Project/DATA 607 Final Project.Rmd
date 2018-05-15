@@ -1,0 +1,46 @@
+---
+title: "DATA 607 Final Project"
+author: "Zach Dravis"
+date: "5/14/2018"
+output: html_document
+---
+
+# Background and Motivation
+
+# Data acquisition
+At least two types of data sources
+1. data.gov's data set that looks at the costs providers bill for various services: https://data.cms.gov/Medicare-Inpatient/Inpatient-Prospective-Payment-System-IPPS-Provider/97k6-zzx3
+```{r}
+library(jsonlite)
+JSON_Cost <- "https://data.cms.gov/resource/ehrv-m9r6.json"
+CostData <- fromJSON(JSON_Cost)
+```
+
+
+# Tidying
+
+# Transform
+Wide to long or columns to a date format
+
+# Visualize
+Graphic that describes or validates data
+
+# Model
+One statistical analysis
+
+# Transform
+
+# Visualize
+
+# Model
+
+# Communicate
+Graphic that supports conclusions
+Analysis that supports conclusions
+
+
+Include something not learned in class:
+examples: “I used ggmap; I created
+a decision tree; I ranked the results; I created my presentation slides directly from R; I figured out to use OAuth 2.0…”
+
+Include a note about challenges
