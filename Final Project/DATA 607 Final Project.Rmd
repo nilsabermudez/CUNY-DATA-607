@@ -11,28 +11,364 @@ output: html_document
 At least two types of data sources
 1. data.gov's data set that looks at the costs providers bill for various services: https://data.cms.gov/Medicare-Inpatient/Inpatient-Prospective-Payment-System-IPPS-Provider/97k6-zzx3
 ```{r}
-library(jsonlite)
-JSON_Cost <- "https://data.cms.gov/resource/ehrv-m9r6.json"
-CostData <- fromJSON(JSON_Cost)
+CostData <- read.csv("https://raw.githubusercontent.com/zachdravis/CUNY-DATA-607/master/Final%20Project/Inpatient_Prospective_Payment_System__IPPS__Provider_Summary_for_the_Top_100_Diagnosis-Related_Groups__DRG__-_FY2011.csv")
+```
+
+# Tidying and Transforming
+To tidy these data we need to reduce them to get a single observation something that we can work with. To do this, I want to take the average cost of each diagnosis group in each state.
+```{r}
+library(stringr)
+CostData$State <- str_extract(CostData$Hospital.Referral.Region.Description, "^[:upper:]{2}")
+
+#Need to change the "money" data type to numeric
+CostData$Average.Covered.Charges <- str_replace(CostData$Average.Covered.Charges, "\\$", "")
+CostData$Average.Covered.Charges <- as.numeric(CostData$Average.Covered.Charges)
+
+CostData$Average.Total.Payments <- str_replace(CostData$Average.Total.Payments, "\\$", "")
+CostData$Average.Total.Payments <- as.numeric(CostData$Average.Total.Payments)
+
+CostData$Average.Medicare.Payments <- str_replace(CostData$Average.Medicare.Payments, "\\$", "")
+CostData$Average.Medicare.Payments <- as.numeric(CostData$Average.Medicare.Payments)
 ```
 
 
-# Tidying
+```{r}
+library(dplyr)
+SummaryCostData <- CostData %>%
+  group_by(State, DRG.Definition) %>%
+  summarise(CollapsedCoveredCharges = mean(Average.Covered.Charges), CollapsedTotalPayments = mean(Average.Total.Payments), CollapsedMedicarePayments = mean(Average.Medicare.Payments), n = n())
+```
 
-# Transform
-Wide to long or columns to a date format
+Now, I'm interested in a few different things for these data.  First, I want to create a variable that shows the gap between the cost billed and what providers were actually paid.
+```{r}
+SummaryCostData <- SummaryCostData %>%
+  mutate(PaymentGap = CollapsedCoveredCharges - CollapsedTotalPayments)
+```
+
+What are the diagnoses with the largest Payment Gaps?
+```{r}
+DiagnosisData <- SummaryCostData %>%
+  filter(n > 10) %>% # Get rid of observations (states) that have 10 or fewer examples of a diagnosis code
+  group_by(DRG.Definition) %>%
+  summarise(MeanPaymentGap = mean(PaymentGap))
+
+DiagnosisData$DRG.Definition <- as.character(DiagnosisData$DRG.Definition)
+DiagnosisData$MeanPaymentGap <- as.numeric(DiagnosisData$MeanPaymentGap)
+
+library(ggplot2)
+PaymentGap <- ggplot(DiagnosisData, aes(x = DRG.Definition, y = MeanPaymentGap)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Frequency of Enodrsements for DS Methods") + 
+  xlab("Number of Endorsements") +
+  ylab("Data Science Method") +
+  guides(fill = F)
+```
+This is really too difficult to make meaning of.  However, we are in luck in that there are only 100 diagnosis codes.  I can group them based on specialty or area.
+```{r}
+DiagnosisData$DxGroup <- NA
+
+#First look at brain / head conditions
+grep("cranial|head|brain|nerv|stroke|ischemia|seizure|DYSEQUILIBRIUM", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("cranial|head|brain|nerv|stroke|ischemia|seizure|DYSEQUILIBRIUM", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Brain"
+
+#Psych conditions
+grep("psych", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("psych", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Psych"
+
+#Heart conditions
+grep("circ|heart|chest|cardiac|cardio|myocardial|vascular|atherosclerosis|hypertension|syncope", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("circ|heart|chest|cardiac|cardio|myocardial|vascular|atherosclerosis|hypertension|syncope", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Cardiac"
+
+#GI conditions
+grep("Bowel|G\\.I\\.|cholecy|gastro|digest|pancreas", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("Bowel|G\\.I\\.|cholecy|gastro|digest|pancreas", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "GI"
+
+#Kidney conditions
+grep("renal|kidney", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("renal|kidney", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Kidney"
+
+#Lung conditions
+grep("respirat|lung|pulmon|bronchitis", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("respirat|lung|pulmon|bronchitis", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Lung"
+
+#Infections
+grep("infect|pneumonia|sepsis|CELLULITIS", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("infect|pneumonia|sepsis|CELLULITIS", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Infection"
+
+#Ortho conditions
+grep("hip|joint|spin|back", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("hip|joint|spin|back", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Ortho"
+
+#Overdose/alcohol diagnoses
+grep("poison|alcohol|drug", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("poison|alcohol|drug", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Drug"
+
+#Metabolic Conditions and Blood
+grep("diabetes|red|nutrition|metabolism", DiagnosisData$DRG.Definition, ignore.case = T, value = T)
+DiagnosisData$DxGroup[grep("diabetes|red|nutrition|metabolism", DiagnosisData$DRG.Definition, ignore.case = T, value = F)] <- "Metabolic"
+
+DiagnosisData$DxGroup[is.na(DiagnosisData$DxGroup)] <- "Other" #add other to only one
+```
+
+Take a peek at the data to make sure it looks ok and then shorten
+```{r}
+View(arrange(DiagnosisData, DxGroup))
+
+DiagnosisData <- DiagnosisData %>%
+  group_by(DxGroup) %>%
+  summarise(MeanPaymentGap = mean(MeanPaymentGap))
+```
 
 # Visualize
 Graphic that describes or validates data
+```{r}
+ggplot(DiagnosisData, aes(x = reorder(DxGroup, MeanPaymentGap), y = MeanPaymentGap, fill = MeanPaymentGap)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Payment Gap For Dx Groups") + 
+  xlab("Dx Group") +
+  ylab("Average Payment Gap") +
+  guides(fill = F)
+```
+
+#Transform
+
+Let's see if these means are different using an ANOVA on the whole data set.
+```{r}
+CostData$DxGroup <- NA
+
+#First look at brain / head conditions
+CostData$DxGroup[grep("cranial|head|brain|nerv|stroke|ischemia|seizure|DYSEQUILIBRIUM", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Brain"
+
+#Psych conditions
+CostData$DxGroup[grep("psych", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Psych"
+
+#Heart conditions
+CostData$DxGroup[grep("circ|heart|chest|cardiac|cardio|myocardial|vascular|atherosclerosis|hypertension|syncope", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Cardiac"
+
+#GI conditions
+CostData$DxGroup[grep("Bowel|G\\.I\\.|cholecy|gastro|digest|pancreas", CostData$DRG.Definition, ignore.case = T, value = F)] <- "GI"
+
+#Kidney conditions
+CostData$DxGroup[grep("renal|kidney", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Kidney"
+
+#Lung conditions
+CostData$DxGroup[grep("respirat|lung|pulmon|bronchitis", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Lung"
+
+#Infections
+CostData$DxGroup[grep("infect|pneumonia|sepsis|CELLULITIS", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Infection"
+
+#Ortho conditions
+CostData$DxGroup[grep("hip|joint|spin|back", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Ortho"
+
+#Overdose/alcohol diagnoses
+CostData$DxGroup[grep("poison|alcohol|drug", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Drug"
+
+#Metabolic Conditions and Blood
+CostData$DxGroup[grep("diabetes|red|nutrition|metabolism", CostData$DRG.Definition, ignore.case = T, value = F)] <- "Metabolic"
+
+CostData$DxGroup[is.na(CostData$DxGroup)] <- "Other" #add other to only one
+
+## And now calculate the same payments difference variable
+CostData <- CostData %>%
+  mutate(PaymentGap = Average.Covered.Charges - Average.Total.Payments)
+
+View(head(CostData))
+```
+
 
 # Model
-One statistical analysis
+Now I will run a hypothesis test to see if the payment gap is different for each diagnosis group throughout the country. My Null Hypothesis is that there is no statistically significant difference in the mean of average payments of the diagnostic groups and the alternative hypothesis is that there is at least one mean not equal to the others.
+```{r}
+hist(CostData$PaymentGap[CostData$DxGroup == "Brain"])
+hist(CostData$PaymentGap[CostData$DxGroup == "Infection"])
+```
 
-# Transform
+Take a look at these two histograms.  Clearly, the data are not normally distributed, meaning an ANOVA is not warranted here.  After some research, I found the Kruskal–Wallis one-way analysis of variance test, a non parametric statistical test that does not require normality.
+
+```{r}
+CostData$DxGroup <- as.factor(CostData$DxGroup)
+kruskal.test(PaymentGap ~ DxGroup, data = CostData)
+```
+
+Given this p-value, we reject the Null Hypothesis and conclude that different diagnosis groups or "fields" have different gaps in what they are paid back.
+
+
+What about a percentage of cost?
+#Transform
+So we will create a new variable that represents the percentage of the cost that was not paid back
+```{r}
+CostData <- CostData %>%
+  mutate(PercentUnpaid = PaymentGap / Average.Covered.Charges)
+```
 
 # Visualize
+```{r}
+CostPercentData <- CostData %>%
+  group_by(DxGroup) %>%
+  summarise(AvgPercentUnpaid = mean(PercentUnpaid))
+
+ggplot(CostPercentData, aes(x = reorder(DxGroup, AvgPercentUnpaid), y = AvgPercentUnpaid, fill = AvgPercentUnpaid)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Percent Unpaid For Dx Groups") + 
+  xlab("Dx Group") +
+  ylab("Percent Unpaid") +
+  guides(fill = F)
+```
 
 # Model
+```{r}
+CostData$DxGroup <- as.factor(CostData$DxGroup)
+kruskal.test(AvgPercentUnpaid ~ DxGroup, data = CostPercentData)
+```
+When accounting for the total cost billed out by providers within each diagnosis group, the different diagnosis groups are not paid back significantly differently.
+
+# Transform
+Now let's look at things at the state level, collapsed across diagnoses.
+```{r}
+StatePercentUnpaid <- CostData %>%
+  group_by(State) %>%
+  summarise(MeanPercentUnpaid = mean(PercentUnpaid))
+```
+
+# Visualize
+```{r}
+ggplot(StatePercentUnpaid, aes(x = reorder(State, MeanPercentUnpaid), y = MeanPercentUnpaid, fill = MeanPercentUnpaid)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Overall Percent Unpaid by State") + 
+  xlab("Dx Group") +
+  ylab("Percent Unpaid") +
+  guides(fill = F) +
+  theme(axis.text.x = element_text( size=12),
+          axis.text.y = element_text(size=6))
+```
+
+# Model
+```{r}
+StatePercentUnpaid$State <- as.factor(StatePercentUnpaid$State)
+kruskal.test(MeanPercentUnpaid ~ State, data = StatePercentUnpaid)
+```
+Cannot reject Null Hypothesis.
+
+Now let's look at how cost differs by diagnosis group in each state
+# Transform
+```{r}
+SummaryCostData <- CostData %>%
+  group_by(State, DRG.Definition) %>%
+  summarise(CollapsedCoveredCharges = mean(Average.Covered.Charges), CollapsedTotalPayments = mean(Average.Total.Payments), CollapsedMedicarePayments = mean(Average.Medicare.Payments), n = n())
+
+SummaryCostData$DxGroup <- NA
+
+#First look at brain / head conditions
+SummaryCostData$DxGroup[grep("cranial|head|brain|nerv|stroke|ischemia|seizure|DYSEQUILIBRIUM", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Brain"
+
+#Psych conditions
+SummaryCostData$DxGroup[grep("psych", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Psych"
+
+#Heart conditions
+SummaryCostData$DxGroup[grep("circ|heart|chest|cardiac|cardio|myocardial|vascular|atherosclerosis|hypertension|syncope", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Cardiac"
+
+#GI conditions
+SummaryCostData$DxGroup[grep("Bowel|G\\.I\\.|cholecy|gastro|digest|pancreas", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "GI"
+
+#Kidney conditions
+SummaryCostData$DxGroup[grep("renal|kidney", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Kidney"
+
+#Lung conditions
+SummaryCostData$DxGroup[grep("respirat|lung|pulmon|bronchitis", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Lung"
+
+#Infections
+SummaryCostData$DxGroup[grep("infect|pneumonia|sepsis|CELLULITIS", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Infection"
+
+#Ortho conditions
+SummaryCostData$DxGroup[grep("hip|joint|spin|back", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Ortho"
+
+#Overdose/alcohol diagnoses
+SummaryCostData$DxGroup[grep("poison|alcohol|drug", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Drug"
+
+#Metabolic Conditions and Blood
+SummaryCostData$DxGroup[grep("diabetes|red|nutrition|metabolism", SummaryCostData$DRG.Definition, ignore.case = T, value = F)] <- "Metabolic"
+
+SummaryCostData$DxGroup[is.na(SummaryCostData$DxGroup)] <- "Other" #add other to only one
+
+SummaryCostData <- SummaryCostData %>%
+  mutate(PercentPaid = CollapsedTotalPayments / CollapsedCoveredCharges)
+```
+
+# Model
+```{r}
+StateGroupModel <- lm(PercentUnpaid ~ State + DxGroup, data = CostData)
+summary(StateGroupModel)
+```
+It looks like a linear model taking into account state and diagnosis group can predict 44% of the variance associated with the percentage paid.
+
+
+
+# Acquire
+How might these data relate to performance data?
+
+https://data.medicare.gov/Hospital-Compare/Hospital-Value-Based-Purchasing-HVBP-Total-Perform/ypbt-wvdk
+
+```{r}
+library(jsonlite)
+Jsondata <- "https://data.medicare.gov/resource/4uyb-9g5r.json?$select=*&$limit=3000&$$app_token=dchsMqAAMutE4ypXYatHu9VdF"
+Jsondata <- jsonlite::fromJSON(Jsondata)
+PerformanceData <- Jsondata
+```
+
+#Transform
+```{r}
+PerformanceData$total_performance_score <- as.numeric(PerformanceData$total_performance_score)
+TotalScoreData <- PerformanceData %>%
+  group_by(state) %>%
+  summarise(MeanTotalPerformance = mean(total_performance_score))
+```
+
+
+```{r, eval=F}
+library(sp)
+library(rgdal)
+
+US <- readOGR("/Users/zachdravis/Documents/GitHub/CUNY-DATA-607/Final Project/gadm36_USA_shp", "gadm36_USA_1")
+
+US@data$StateTwoLetter <- str_extract(US@data$HASC_1, "..$")
+
+US <- US[US@data$StateTwoLetter %in% TotalScoreData$state,]
+
+US@data <- as.data.frame(left_join(TotalScoreData, US@data, by = c("state" = "StateTwoLetter")))
+
+spplot(US, 'MeanTotalPerformance')
+US@data
+plot(US[US@data$state=='New York',])
+```
+
+
+```{r}
+StateUnpaidPerformance <- left_join(TotalScoreData, StatePercentUnpaid, by = c("state" = "State"))
+ggplot(StateUnpaidPerformance, aes(x = MeanTotalPerformance, y = MeanPercentUnpaid)) +
+  geom_point(stat = "identity") +
+  ggtitle("Frequency of Enodrsements for DS Methods") + 
+  xlab("Number of Endorsements") +
+  ylab("Data Science Method") +
+  geom_smooth(method='lm') +
+  guides(fill = F)
+```
+
+```{r}
+LM_StateUnpaidPerformance <- lm(MeanTotalPerformance ~ MeanPercentUnpaid, data = StateUnpaidPerformance)
+summary(LM_StateUnpaidPerformance)
+```
+
+```{r}
+PerformanceData$provider_number <- as.numeric(PerformanceData$provider_number)
+CostPerformanceData <- left_join(PerformanceData, CostData, by = c("provider_number" = "Provider.Id"))
+LM_CostPerformance <- lm(total_performance_score ~ PercentUnpaid + State, data = CostPerformanceData)
+summary(LM_CostPerformance)
+```
+
 
 # Communicate
 Graphic that supports conclusions
